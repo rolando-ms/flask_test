@@ -111,8 +111,125 @@ class StoreSentence(Resource):
 
         return jsonify(return_json)
     
+class GetSentence(Resource):
+    def post(self):
+        posted_data = request.get_json()
+
+        username = posted_data["username"]
+        password = posted_data["password"]
+
+        correct_password = verify_password(username, password)
+
+        if not correct_password:
+            return_json = {
+                "status": 302,
+                "message": "Password is not correct"
+            }
+            return jsonify(return_json)
+        
+        num_tokens = count_tokens(username)
+        if num_tokens <= 0:
+            return_json = {
+                "status": 301,
+                "message": "Not enough tokens for this service (%s tokens left)" % (str(num_tokens))
+            }
+            return jsonify(return_json)
+        
+        users.update_one(
+            {
+                "Username": username
+            },
+            {
+                "$set":
+                {
+                    "Tokens": num_tokens - 1
+                }
+            }
+        )
+        
+        sentence = users.find(
+        {
+            "Username": username
+        }
+        )[0]["Sentence"]
+
+        return_json = {
+            "status": 200,
+            "sentence": sentence
+        }
+
+        return jsonify(return_json)
+    
+class GetTokens(Resource):
+    def post(self):
+        posted_data = request.get_json()
+
+        username = posted_data["username"]
+        password = posted_data["password"]
+
+        correct_password = verify_password(username, password)
+
+        if not correct_password:
+            return_json = {
+                "status": 302,
+                "message": "Password is not correct"
+            }
+            return jsonify(return_json)
+        
+        tokens = users.find(
+        {
+            "Username": username
+        }
+        )[0]["Tokens"]
+
+        return_json = {
+            "status": 200,
+            "Number of tokens available": tokens
+        }
+
+        return jsonify(return_json)
+    
+class SetTokens(Resource):
+    def post(self):
+        posted_data = request.get_json()
+
+        username = posted_data["username"]
+        password = posted_data["password"]
+        tokens = posted_data["tokens"]
+
+        correct_password = verify_password(username, password)
+
+        if not correct_password:
+            return_json = {
+                "status": 302,
+                "message": "Password is not correct"
+            }
+            return jsonify(return_json)
+        
+        users.update_one(
+            {
+                "Username": username
+            },
+            {
+                "$set":
+                {
+                    "Tokens": tokens
+                }
+            }
+        )
+
+        return_json = {
+            "status": 200,
+            "Tokens updated. Number of tokens available": tokens 
+        }
+
+        return jsonify(return_json)
+    
 api.add_resource(RegisterUser, "/registerUser")
 api.add_resource(StoreSentence, "/storeSentence")
+api.add_resource(GetSentence, "/getSentence")
+api.add_resource(GetTokens, "/getTokens")
+api.add_resource(SetTokens, "/setTokens")
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0')
