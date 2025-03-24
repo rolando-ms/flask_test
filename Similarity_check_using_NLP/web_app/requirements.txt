@@ -2,4 +2,6 @@ Flask
 flask_restful
 pymongo
 bcrypt
+setuptools
+wheel
 spacy
